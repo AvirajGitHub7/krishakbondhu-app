@@ -1,56 +1,73 @@
-# Welcome to your Expo app 👋
+# KrishakBondhu Farmer App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+KrishakBondhu (Farmer's Friend) is a comprehensive React Native mobile application built with Expo, designed to empower farmers with modern agricultural tools, community engagement, and AI-driven insights.
 
-## Get started
+## About the Project
 
-1. Install dependencies
+The Farmer App serves as the primary mobile interface for farmers interacting with the KrishakBondhu platform. It provides a seamless, intuitive experience tailored for agricultural use cases. Key features include:
 
-   ```bash
-   npm install
-   ```
+*   **AI Disease Detection**: Farmers can upload photos of their crops, and the integrated AI model will instantly detect potential diseases and provide actionable recommendations.
+*   **Community Feed**: A social platform where farmers can share updates, ask questions, and interact with peers through posts, likes, and comments.
+*   **Expert Consultation**: Direct access to agricultural experts. Farmers can submit specific queries along with images to receive professional advice and diagnoses.
+*   **Localized Experience**: Built-in support for multiple languages to ensure accessibility for farmers across different regions.
+*   **Weather & Insights**: Real-time dashboard providing localized weather conditions and relevant farming insights.
 
-2. Start the app
+## Technology Stack
 
-   ```bash
-   npx expo start
-   ```
+*   **Framework**: React Native with Expo (Expo Router for navigation)
+*   **State Management**: Zustand
+*   **Styling**: NativeWind / Tailwind CSS
+*   **API Client**: Axios
+*   **Internationalization**: i18next
 
-In the output, you'll find options to open the app in a
+## Prerequisites
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+Before you begin, ensure you have the following installed on your development machine:
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+*   Node.js (v18 or higher recommended)
+*   npm or yarn
+*   Expo CLI
+*   Expo Go app installed on your physical mobile device (Android or iOS), or an appropriate emulator/simulator configured on your machine.
 
-## Get a fresh project
+## Installation and Setup
 
-When you're ready, run:
+Follow these steps to get the development environment running:
 
-```bash
-npm run reset-project
-```
+1.  **Navigate to the project directory:**
+    ```bash
+    cd KrishakBondhu/farmer-app
+    ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
 
-### Other setup steps
+3.  **Environment Variables:**
+    Create a `.env` file in the root of the `farmer-app` directory and configure the required environment variables. A typical configuration requires the backend API URL:
+    ```env
+    EXPO_PUBLIC_API_URL=http://<YOUR_LOCAL_IP>:8000/api/v1
+    ```
+    *Note: Replace `<YOUR_LOCAL_IP>` with your machine's actual IP address (e.g., `192.168.1.100`) if testing on a physical device, as `localhost` will resolve to the device itself.*
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+4.  **Start the development server:**
+    ```bash
+    npx expo start -c
+    ```
 
-## Learn more
+5.  **Run the application:**
+    *   **Physical Device**: Scan the QR code displayed in your terminal using the Expo Go app.
+    *   **Android Emulator**: Press `a` in the terminal.
+    *   **iOS Simulator**: Press `i` in the terminal (Requires macOS).
 
-To learn more about developing your project with Expo, look at the following resources:
+## Development Guidelines
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+*   **Components**: Reusable UI components are located in the `src/components` directory.
+*   **Screens**: Application screens and routing logic are handled within the `src/app` directory using Expo Router.
+*   **Services**: API integration and external service calls are abstracted in the `src/services` directory.
+*   **State**: Global state management stores are defined in the `src/store` directory.
 
-## Join the community
+## Troubleshooting
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+*   **Network Errors**: Ensure your mobile device and development machine are connected to the same Wi-Fi network. Verify that the `EXPO_PUBLIC_API_URL` is pointing to the correct local IP address.
+*   **Cache Issues**: If you experience unexpected behavior after updating dependencies or assets, clear the bundler cache by starting the server with the `-c` flag (`npx expo start -c`).
