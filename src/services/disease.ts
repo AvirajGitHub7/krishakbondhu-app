@@ -19,7 +19,6 @@ export const diseaseService = {
     } as any);
 
     const response = await api.post('/disease/predict', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 60000, // 60s for ML inference
     });
     return response.data;

@@ -35,7 +35,7 @@ export default function CommunityScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
-  const [activeCategory, setActiveCategory] = useState(CATEGORIES[0]);
+  const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
 
   // Compose States
   const [title, setTitle] = useState('');
@@ -140,12 +140,12 @@ export default function CommunityScreen() {
   };
 
   const filteredPosts =
-    activeCategory === t('community.all', 'All')
+    activeCategoryIndex === 0
       ? posts
       : posts.filter(
           (p) =>
-            p.title.toLowerCase().includes(activeCategory.toLowerCase()) ||
-            p.description.toLowerCase().includes(activeCategory.toLowerCase())
+            p.title.toLowerCase().includes(CATEGORIES[activeCategoryIndex].toLowerCase()) ||
+            p.description.toLowerCase().includes(CATEGORIES[activeCategoryIndex].toLowerCase())
         );
 
   const renderPost = ({ item }: { item: Post }) => {
@@ -221,19 +221,19 @@ export default function CommunityScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterScroll}
         >
-          {CATEGORIES.map((cat) => (
+          {CATEGORIES.map((cat, index) => (
             <TouchableOpacity
               key={cat}
               style={[
                 styles.filterChip,
-                activeCategory === cat && styles.filterChipActive,
+                activeCategoryIndex === index && styles.filterChipActive,
               ]}
-              onPress={() => setActiveCategory(cat)}
+              onPress={() => setActiveCategoryIndex(index)}
             >
               <Text
                 style={[
                   styles.filterChipText,
-                  activeCategory === cat && styles.filterChipTextActive,
+                  activeCategoryIndex === index && styles.filterChipTextActive,
                 ]}
               >
                 {cat}

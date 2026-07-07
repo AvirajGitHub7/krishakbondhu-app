@@ -19,11 +19,6 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    // Let Axios auto-detect Content-Type for FormData (multipart/form-data with boundary).
-    // Only set application/json if data is NOT FormData.
-    if (config.data && !(config.data instanceof FormData)) {
-      config.headers['Content-Type'] = 'application/json';
-    }
     return config;
   },
   (error) => Promise.reject(error)

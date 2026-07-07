@@ -42,9 +42,7 @@ export const postService = {
       } as any);
     }
 
-    const response = await api.post('/posts/', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const response = await api.post('/posts/', formData);
     return response.data;
   },
 
