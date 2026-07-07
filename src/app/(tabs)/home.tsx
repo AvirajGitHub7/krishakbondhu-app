@@ -102,9 +102,8 @@ export default function HomeScreen() {
 
           {!result && (
             <View style={styles.actionRow}>
-              <TouchableOpacity style={styles.secondaryBtn} onPress={resetState}>
-                <Ionicons name="camera-reverse-outline" size={18} color="#1C2D24" style={{ marginRight: 6 }} />
-                <Text style={styles.secondaryBtnText}>{t('home.changePhoto', 'Change Photo')}</Text>
+              <TouchableOpacity style={styles.iconBtn} onPress={resetState}>
+                <Ionicons name="camera-outline" size={24} color="#1C2D24" />
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.analyzeBtn, loading && styles.btnDisabled]}
@@ -340,14 +339,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionRow: { flexDirection: 'row', gap: 12, marginTop: 16 },
-  secondaryBtn: {
-    flex: 1, backgroundColor: '#FFFFFF', borderRadius: 16,
-    paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: '#ECEFF1',
+  iconBtn: {
+    width: 52, height: 52, backgroundColor: '#FFFFFF', borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#ECEFF1',
   },
-  secondaryBtnText: { fontSize: 14, fontWeight: '700', color: '#1C2D24' },
   analyzeBtn: {
-    flex: 2, backgroundColor: '#0F3A20', borderRadius: 16,
+    flex: 1, backgroundColor: '#0F3A20', borderRadius: 16,
     paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     shadowColor: '#0F3A20', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25, shadowRadius: 8, elevation: 4,
