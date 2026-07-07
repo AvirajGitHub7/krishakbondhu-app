@@ -15,7 +15,7 @@ import { Post } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/store/authStore';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, Link, useRouter } from 'expo-router';
 
 const { height } = Dimensions.get('window');
 
@@ -156,9 +156,10 @@ export default function CommunityScreen() {
       : 'KB';
 
     return (
-      <View style={styles.postCard}>
-        {/* Author Header */}
-        <View style={styles.postHeader}>
+      <Link href={`/post/${item.id}`} asChild>
+        <TouchableOpacity style={styles.postCard} activeOpacity={0.9}>
+          {/* Author Header */}
+          <View style={styles.postHeader}>
           <View style={styles.authorAvatar}>
             <Text style={styles.authorAvatarText}>{initials}</Text>
           </View>
@@ -210,7 +211,8 @@ export default function CommunityScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
+        </TouchableOpacity>
+      </Link>
     );
   };
 
