@@ -6,8 +6,7 @@
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import * as NavigationBar from 'expo-navigation-bar';
-import { Platform } from 'react-native';
+import { NavigationBar } from 'expo-navigation-bar';
 import { useAuthStore } from '@/store/authStore';
 import '@/i18n';
 
@@ -18,10 +17,6 @@ export default function RootLayout() {
 
   useEffect(() => {
     loadStoredAuth();
-    if (Platform.OS === 'android') {
-      NavigationBar.setBackgroundColorAsync('#FFFFFF');
-      NavigationBar.setButtonStyleAsync('dark');
-    }
   }, []);
 
   useEffect(() => {
@@ -55,6 +50,7 @@ export default function RootLayout() {
   return (
     <>
       <StatusBar style="light" />
+      <NavigationBar style="light" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
