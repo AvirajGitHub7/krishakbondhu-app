@@ -122,46 +122,15 @@ export default function HomeScreen() {
             </View>
           )}
         </View>
-      ) : (
-        <>
-          <View style={styles.uploadGrid}>
-            <TouchableOpacity style={styles.uploadCard} onPress={() => pickImage(true)} activeOpacity={0.8}>
-              <LinearGradient colors={['#E8F5E9', '#C8E6C9']} style={styles.uploadIconContainer}>
-                <Ionicons name="aperture-outline" size={32} color="#2E7D32" />
-              </LinearGradient>
-              <Text style={styles.uploadLabel}>{t('home.captureLeaf', 'Capture Leaf')}</Text>
-              <Text style={styles.uploadHint}>{t('home.captureHint', 'Position leaf under bright light')}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.uploadCard} onPress={() => pickImage(false)} activeOpacity={0.8}>
-              <LinearGradient colors={['#FFF3E0', '#FFE0B2']} style={styles.uploadIconContainer}>
-                <Ionicons name="image-outline" size={32} color="#E65100" />
-              </LinearGradient>
-              <Text style={styles.uploadLabel}>{t('home.fromGallery', 'From Gallery')}</Text>
-              <Text style={styles.uploadHint}>{t('home.galleryHint', 'Upload high-res crop file')}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* SVG Illustration & Guide */}
-          <View style={styles.guideContainer}>
-            <Image
-              source={require('../../../assets/images/detection.svg')}
-              style={styles.guideIllustration}
-              contentFit="contain"
-            />
-            <Text style={styles.guideTitle}>
-              {t('home.guideTitle', 'AI Crop Diagnostics')}
-            </Text>
-            <Text style={styles.guideText}>
-              {t('home.guideText', 'Scan leaf symptoms to instantly identify crop diseases. Position the leaf details clearly under bright light for optimal accuracy.')}
-            </Text>
-          </View>
-        </>
       )}
 
       {/* Disease Result Dashboard */}
       {result && (
         <View style={styles.resultCard}>
+          <Image 
+            source={require('../../../assets/images/home_illustration.svg')}
+            style={{ width: '100%', height: 200, resizeMode: 'contain', marginBottom: 20 }} 
+          />
           <View style={styles.resultHeader}>
             <View style={{ flex: 1, paddingRight: 16 }}>
               <Text style={styles.resultMetaLabel}>{t('home.diagnosticReport', 'DIAGNOSTIC REPORT')}</Text>
@@ -262,6 +231,25 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Upload Grid (Always at bottom) */}
+      <View style={[styles.uploadGrid, { marginHorizontal: 8 }]}>
+        <TouchableOpacity style={styles.uploadCard} onPress={() => pickImage(true)} activeOpacity={0.8}>
+          <LinearGradient colors={['#E8F5E9', '#C8E6C9']} style={styles.uploadIconContainer}>
+            <Ionicons name="aperture-outline" size={32} color="#2E7D32" />
+          </LinearGradient>
+          <Text style={styles.uploadLabel}>{t('home.captureLeaf', 'Capture Leaf')}</Text>
+          <Text style={styles.uploadHint}>{t('home.captureHint', 'Position leaf under bright light')}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.uploadCard} onPress={() => pickImage(false)} activeOpacity={0.8}>
+          <LinearGradient colors={['#FFF3E0', '#FFE0B2']} style={styles.uploadIconContainer}>
+            <Ionicons name="image-outline" size={32} color="#E65100" />
+          </LinearGradient>
+          <Text style={styles.uploadLabel}>{t('home.fromGallery', 'From Gallery')}</Text>
+          <Text style={styles.uploadHint}>{t('home.galleryHint', 'Upload high-res crop file')}</Text>
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 }
