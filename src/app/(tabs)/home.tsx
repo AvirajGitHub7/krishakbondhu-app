@@ -84,7 +84,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Visual Diagnostic Center */}
-      {imageUri ? (
+      {imageUri && (
         <View style={styles.previewSection}>
           <View style={styles.viewfinderWrapper}>
             <Image source={{ uri: imageUri }} style={styles.previewImage} />
