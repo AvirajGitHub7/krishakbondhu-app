@@ -15,6 +15,7 @@ import { DiseaseResult } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
 
@@ -67,16 +68,23 @@ export default function HomeScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Clean Hero Header */}
-      <View style={styles.heroSection}>
+      {/* Premium Hero Header with Diagonal Crop */}
+      <View style={{ backgroundColor: '#0F3A20', paddingTop: 30, paddingHorizontal: 20 }}>
         <View style={styles.heroHeader}>
           <View style={styles.heroIconBadge}>
             <Ionicons name="leaf-outline" size={26} color="#0F3A20" />
           </View>
           <View>
-            <Text style={styles.heroTitle}>{t('home.cropDiagnostics', 'Crop Diagnostics')}</Text>
+            <Text style={[styles.heroTitle, { color: '#FFFFFF' }]}>{t('home.cropDiagnostics', 'Crop Diagnostics')}</Text>
           </View>
         </View>
+      </View>
+      
+      {/* SVG Diagonal Crop Transition */}
+      <View style={{ backgroundColor: '#0F3A20', height: 40, width: '100%', marginTop: -1, zIndex: 1 }}>
+        <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <Path d="M0 100 L100 0 L100 100 Z" fill="#FAF8F5" />
+        </Svg>
       </View>
 
       {!imageUri && (
@@ -233,22 +241,20 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Upload Grid (Always at bottom) */}
-      <View style={[styles.uploadGrid, { marginHorizontal: 8 }]}>
-        <TouchableOpacity style={styles.uploadCard} onPress={() => pickImage(true)} activeOpacity={0.8}>
-          <LinearGradient colors={['#E8F5E9', '#C8E6C9']} style={styles.uploadIconContainer}>
-            <Ionicons name="aperture-outline" size={32} color="#2E7D32" />
+      {/* Upload Actions (Horizontal Row) */}
+      <View style={[styles.uploadGrid, { marginHorizontal: 16 }]}>
+        <TouchableOpacity style={styles.actionBtn} onPress={() => pickImage(true)} activeOpacity={0.8}>
+          <LinearGradient colors={['#E8F5E9', '#C8E6C9']} style={styles.actionIconBg}>
+            <Ionicons name="camera-outline" size={24} color="#2E7D32" />
           </LinearGradient>
-          <Text style={styles.uploadLabel}>{t('home.captureLeaf', 'Capture Leaf')}</Text>
-          <Text style={styles.uploadHint}>{t('home.captureHint', 'Position leaf under bright light')}</Text>
+          <Text style={styles.actionBtnText}>{t('home.captureLeaf', 'Capture')}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.uploadCard} onPress={() => pickImage(false)} activeOpacity={0.8}>
-          <LinearGradient colors={['#FFF3E0', '#FFE0B2']} style={styles.uploadIconContainer}>
-            <Ionicons name="image-outline" size={32} color="#E65100" />
+        <TouchableOpacity style={styles.actionBtn} onPress={() => pickImage(false)} activeOpacity={0.8}>
+          <LinearGradient colors={['#FFF3E0', '#FFE0B2']} style={styles.actionIconBg}>
+            <Ionicons name="image-outline" size={24} color="#E65100" />
           </LinearGradient>
-          <Text style={styles.uploadLabel}>{t('home.fromGallery', 'From Gallery')}</Text>
-          <Text style={styles.uploadHint}>{t('home.galleryHint', 'Upload high-res crop file')}</Text>
+          <Text style={styles.actionBtnText}>{t('home.fromGallery', 'Gallery')}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -257,7 +263,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAF8F5' },
-  content: { padding: 20, paddingBottom: 120 },
+  content: { paddingBottom: 120 },
   heroSection: {
     paddingVertical: 16,
     paddingHorizontal: 8,
@@ -277,20 +283,41 @@ const styles = StyleSheet.create({
   heroTitle: { fontSize: 24, fontWeight: '900', color: '#0F3A20', letterSpacing: -0.5 },
   heroStatsText: { fontSize: 11, color: '#5A7265', marginTop: 4, fontWeight: '700', letterSpacing: 0.5 },
   heroSubtitle: { fontSize: 14, color: '#5A7265', lineHeight: 22, fontWeight: '500' },
-  uploadGrid: { gap: 16, marginBottom: 24, paddingHorizontal: 12, zIndex: 10 },
-  uploadCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 28, padding: 20,
+  uploadGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 30,
+    zIndex: 10,
+  },
+  actionBtn: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#1C2D24', shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08, shadowRadius: 20, elevation: 5,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#ECEFF1',
+    shadowColor: '#1C2D24',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
   },
-  uploadIconContainer: {
-    padding: 16,
-    borderRadius: 22,
-    marginBottom: 12,
+  actionIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
   },
-  uploadLabel: { fontSize: 17, fontWeight: '900', color: '#1C2D24', marginBottom: 6, letterSpacing: -0.3 },
-  uploadHint: { fontSize: 13, color: '#5A7265', fontWeight: '500' },
+  actionBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1C2D24',
+  },
   previewSection: { marginBottom: 24, paddingHorizontal: 12, zIndex: 10, marginTop: 16 },
   viewfinderWrapper: {
     position: 'relative',
