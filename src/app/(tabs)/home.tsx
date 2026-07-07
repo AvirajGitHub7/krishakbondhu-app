@@ -91,7 +91,8 @@ export default function HomeScreen() {
         <View style={{ alignItems: 'center', marginTop: 10, marginBottom: 30 }}>
           <Image 
             source={require('../../../assets/images/home_illustration.svg')}
-            style={{ width: '80%', height: 220, resizeMode: 'contain' }} 
+            style={{ width: '80%', height: 220 }} 
+            contentFit="contain"
           />
         </View>
       )}
