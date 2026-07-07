@@ -4,6 +4,7 @@
  */
 
 import { useEffect } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationBar } from 'expo-navigation-bar';
@@ -44,7 +45,11 @@ export default function RootLayout() {
   }, [isAuthenticated, isLoading, hasCompletedOnboarding, segments]);
 
   if (isLoading) {
-    return null; // Splash screen shows while loading
+    return (
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#0F3A20" />
+      </View>
+    );
   }
 
   return (
