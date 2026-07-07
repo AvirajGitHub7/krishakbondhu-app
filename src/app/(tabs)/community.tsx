@@ -15,6 +15,7 @@ import { Post } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/store/authStore';
+import { useFocusEffect } from 'expo-router';
 
 const { height } = Dimensions.get('window');
 
@@ -55,10 +56,11 @@ export default function CommunityScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchPosts();
-  }, [fetchPosts]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchPosts();
+    }, [fetchPosts])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
