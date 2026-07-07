@@ -15,11 +15,11 @@ export default function PostLayout() {
         options={{
           headerTitle: t('community.postDetails', 'Post Details'),
           headerStyle: { backgroundColor: '#FFFFFF' },
-          headerTintColor: Colors.text,
+          headerTintColor: Colors.textPrimary,
           headerShadowVisible: false,
           headerLeft: () => (
             <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 8, padding: 4 }}>
-              <Ionicons name="arrow-back" size={24} color={Colors.text} />
+              <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
             </TouchableOpacity>
           )
         }} 

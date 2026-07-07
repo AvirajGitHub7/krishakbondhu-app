@@ -56,8 +56,8 @@ export default function PostDetailScreen() {
     try {
       const updated = await postService.toggleLike(post.id);
       setPost({ ...post, like_count: updated.like_count });
-    } catch (error) {
-      // Failed to like
+    } catch (error: any) {
+      Alert.alert('Like Error', error.response?.data?.detail || error.message || 'Failed to like post.');
     }
   };
 

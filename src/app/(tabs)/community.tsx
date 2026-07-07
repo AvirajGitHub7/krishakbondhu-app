@@ -22,6 +22,7 @@ const { height } = Dimensions.get('window');
 export default function CommunityScreen() {
   const { t } = useTranslation();
   const { user } = useAuthStore();
+  const router = useRouter();
   
   // Need to evaluate categories dynamically inside the component so they can be translated
   const CATEGORIES = [
@@ -114,8 +115,8 @@ export default function CommunityScreen() {
           p.id === postId ? { ...p, like_count: updated.like_count } : p
         )
       );
-    } catch (e) {
-      // Failed to like post
+    } catch (error: any) {
+      Alert.alert('Like Error', error.response?.data?.detail || error.message || 'Failed to like post.');
     }
   };
 
@@ -156,10 +157,13 @@ export default function CommunityScreen() {
       : 'KB';
 
     return (
-      <Link href={`/post/${item.id}`} asChild>
-        <TouchableOpacity style={styles.postCard} activeOpacity={0.9}>
-          {/* Author Header */}
-          <View style={styles.postHeader}>
+      <TouchableOpacity 
+        style={styles.postCard} 
+        activeOpacity={0.9} 
+        onPress={() => router.push({ pathname: '/post/[id]', params: { id: item.id } })}
+      >
+        {/* Author Header */}
+        <View style={styles.postHeader}>
           <View style={styles.authorAvatar}>
             <Text style={styles.authorAvatarText}>{initials}</Text>
           </View>
@@ -196,7 +200,11 @@ export default function CommunityScreen() {
         <View style={styles.postFooter}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => handleLike(item.id)}
+            onPress={(e) => {
+              // React Native does not natively have e.stopPropagation for TouchableOpacity that works flawlessly
+              // but we will do our best or users can just like from the details view if it bubbles.
+              handleLike(item.id);
+            }}
           >
             <Ionicons name="heart-outline" size={20} color="#E65100" />
             <Text style={styles.actionButtonText}>
@@ -211,8 +219,7 @@ export default function CommunityScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-        </TouchableOpacity>
-      </Link>
+      </TouchableOpacity>
     );
   };
 
