@@ -75,13 +75,18 @@ export default function HomeScreen() {
           </View>
           <View>
             <Text style={styles.heroTitle}>{t('home.cropDiagnostics', 'Crop Diagnostics')}</Text>
-            <Text style={styles.heroStatsText}>{t('home.systemStatus', 'System: Active | AI model v1.2')}</Text>
           </View>
         </View>
-        <Text style={styles.heroSubtitle}>
-          {t('home.subtitle', 'Use our production-grade computer vision to diagnose crop diseases and pests instantly.')}
-        </Text>
       </View>
+
+      {!imageUri && (
+        <View style={{ alignItems: 'center', marginTop: 10, marginBottom: 30 }}>
+          <Image 
+            source={require('../../../assets/images/home_illustration.svg')}
+            style={{ width: '80%', height: 220, resizeMode: 'contain' }} 
+          />
+        </View>
+      )}
 
       {/* Visual Diagnostic Center */}
       {imageUri && (
@@ -127,10 +132,6 @@ export default function HomeScreen() {
       {/* Disease Result Dashboard */}
       {result && (
         <View style={styles.resultCard}>
-          <Image 
-            source={require('../../../assets/images/home_illustration.svg')}
-            style={{ width: '100%', height: 200, resizeMode: 'contain', marginBottom: 20 }} 
-          />
           <View style={styles.resultHeader}>
             <View style={{ flex: 1, paddingRight: 16 }}>
               <Text style={styles.resultMetaLabel}>{t('home.diagnosticReport', 'DIAGNOSTIC REPORT')}</Text>
