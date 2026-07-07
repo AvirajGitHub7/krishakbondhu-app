@@ -11,12 +11,16 @@
       "icon": "./assets/images/icon.png"
     },
     "android": {
+      "package": "com.krishakbondhu.farmerapp",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/splash-icon.png",
         "backgroundImage": "./assets/images/splash-icon.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "static",
@@ -39,6 +43,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d3bc19f2-2ce9-4a18-8280-373261f28035"
+      }
+    },
+    "owner": "aviraj_74"
   }
 }

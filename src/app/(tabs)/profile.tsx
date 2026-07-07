@@ -223,18 +223,6 @@ export default function ProfileScreen() {
 
 /* --- Reusable Sub-components --- */
 
-function StatCard({ icon, value, label }: { icon: IconName; value: string; label: string }) {
-  return (
-    <View style={styles.statCard}>
-      <View style={styles.statIconContainer}>
-        <Ionicons name={icon} size={20} color="#0F3A20" />
-      </View>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
-}
-
 function SettingRow({
   icon,
   label,

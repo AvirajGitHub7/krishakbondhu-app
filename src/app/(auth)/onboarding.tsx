@@ -19,6 +19,14 @@ import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { useAuthStore } from '@/store/authStore';
 import { useTranslation } from 'react-i18next';
+import Animated, { 
+  FadeInRight, 
+  FadeOutLeft, 
+  FadeIn, 
+  FadeOut,
+  useAnimatedStyle,
+  withTiming
+} from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -45,6 +53,17 @@ const SLIDES = [
     image: require('../../../assets/images/expert.svg'),
   },
 ];
+
+const Dot = ({ active }: { active: boolean }) => {
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      width: withTiming(active ? 24 : 8, { duration: 300 }),
+      backgroundColor: withTiming(active ? '#5ECE7D' : '#E0EAE3', { duration: 300 }),
+    };
+  });
+
+  return <Animated.View style={[styles.indicator, animatedStyle]} />;
+};
 
 export default function OnboardingScreen() {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -85,13 +104,14 @@ export default function OnboardingScreen() {
 
       {/* Skip Button */}
       {currentSlide < SLIDES.length - 1 && (
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={handleFinish}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.skipText}>{t('onboarding.skip')}</Text>
-        </TouchableOpacity>
+        <Animated.View entering={FadeIn.duration(400)} exiting={FadeOut.duration(300)} style={styles.skipButton}>
+          <TouchableOpacity
+            onPress={handleFinish}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.skipText}>{t('onboarding.skip')}</Text>
+          </TouchableOpacity>
+        </Animated.View>
       )}
 
       {/* Illustrations ScrollView */}
@@ -121,11 +141,29 @@ export default function OnboardingScreen() {
       <View style={styles.infoCard}>
         <View style={styles.cardContent}>
           {/* Subtitle / Alternate Title Tagline */}
-          <Text style={styles.bengaliTitle}>{t(SLIDES[currentSlide].titleBnKey)}</Text>
+          <Animated.Text 
+            key={`subtitle-${currentSlide}`}
+            entering={FadeInRight.duration(400).delay(100)} 
+            style={styles.bengaliTitle}
+          >
+            {t(SLIDES[currentSlide].titleBnKey)}
+          </Animated.Text>
           {/* Main Title */}
-          <Text style={styles.title}>{t(SLIDES[currentSlide].titleKey)}</Text>
+          <Animated.Text 
+            key={`title-${currentSlide}`}
+            entering={FadeInRight.duration(400).delay(150)} 
+            style={styles.title}
+          >
+            {t(SLIDES[currentSlide].titleKey)}
+          </Animated.Text>
           {/* Description */}
-          <Text style={styles.description}>{t(SLIDES[currentSlide].descKey)}</Text>
+          <Animated.Text 
+            key={`desc-${currentSlide}`}
+            entering={FadeInRight.duration(400).delay(200)} 
+            style={styles.description}
+          >
+            {t(SLIDES[currentSlide].descKey)}
+          </Animated.Text>
         </View>
 
         {/* Footer Navigation Area */}
@@ -133,13 +171,7 @@ export default function OnboardingScreen() {
           {/* Slide Indicator Dots */}
           <View style={styles.indicatorContainer}>
             {SLIDES.map((_, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.indicator,
-                  currentSlide === index && styles.indicatorActive,
-                ]}
-              />
+              <Dot key={index} active={currentSlide === index} />
             ))}
           </View>
 

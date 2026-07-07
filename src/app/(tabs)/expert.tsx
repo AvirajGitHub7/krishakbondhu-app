@@ -40,7 +40,7 @@ export default function ExpertScreen() {
       const data = await expertService.getMyRequests();
       setRequests(data.requests);
     } catch (e) {
-      console.error(e);
+      // Failed to fetch requests
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -48,6 +48,7 @@ export default function ExpertScreen() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchRequests();
   }, [fetchRequests]);
 

@@ -48,7 +48,7 @@ export default function CommunityScreen() {
       const data = await postService.getPosts();
       setPosts(data.posts);
     } catch (e) {
-      console.error(e);
+      // Failed to fetch posts
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -56,6 +56,7 @@ export default function CommunityScreen() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchPosts();
   }, [fetchPosts]);
 
@@ -112,7 +113,7 @@ export default function CommunityScreen() {
         )
       );
     } catch (e) {
-      console.error(e);
+      // Failed to like post
     }
   };
 
