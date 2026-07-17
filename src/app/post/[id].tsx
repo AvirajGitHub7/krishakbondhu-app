@@ -52,11 +52,44 @@ export default function PostDetailScreen() {
   }, [fetchPostDetails]);
 
   const handleLike = async () => {
-    if (!post) return;
+    if (!post || !user?.id) return;
+    const userId = user.id;
+    const alreadyLiked = post.likes.includes(userId);
+
+    // Optimistic update
+    setPost({
+      ...post,
+      likes: alreadyLiked
+        ? post.likes.filter((id) => id !== userId)
+        : [...post.likes, userId],
+      like_count: alreadyLiked ? Math.max(0, post.like_count - 1) : post.like_count + 1,
+    });
+
     try {
       const updated = await postService.toggleLike(post.id);
-      setPost({ ...post, like_count: updated.like_count });
+      setPost((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          like_count: updated.like_count,
+          likes: updated.liked
+            ? (prev.likes.includes(userId) ? prev.likes : [...prev.likes, userId])
+            : prev.likes.filter((id) => id !== userId),
+        };
+      });
     } catch (error: any) {
+      // Revert on failure
+      setPost((prev) => {
+        if (!prev) return prev;
+        const wasLiked = prev.likes.includes(userId);
+        return {
+          ...prev,
+          likes: wasLiked
+            ? prev.likes.filter((id) => id !== userId)
+            : [...prev.likes, userId],
+          like_count: wasLiked ? Math.max(0, prev.like_count - 1) : prev.like_count + 1,
+        };
+      });
       Alert.alert('Like Error', error.response?.data?.detail || error.message || 'Failed to like post.');
     }
   };
@@ -110,8 +143,12 @@ export default function PostDetailScreen() {
 
         <View style={styles.postFooter}>
           <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
-            <Ionicons name="heart-outline" size={20} color="#E65100" />
-            <Text style={styles.actionButtonText}>
+            <Ionicons
+              name={post.likes.includes(user?.id || '') ? 'heart' : 'heart-outline'}
+              size={20}
+              color={post.likes.includes(user?.id || '') ? '#D32F2F' : '#E65100'}
+            />
+            <Text style={[styles.actionButtonText, post.likes.includes(user?.id || '') && { color: '#D32F2F' }]}>
               {post.like_count || 0} {t('community.likes', 'Likes')}
             </Text>
           </TouchableOpacity>

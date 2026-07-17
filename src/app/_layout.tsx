@@ -4,24 +4,37 @@
  */
 
 import { useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Platform } from 'react-native';
+import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import { NavigationBar } from 'expo-navigation-bar';
 import { useAuthStore } from '@/store/authStore';
 import '@/i18n';
+
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const { loadStoredAuth, isLoading, isAuthenticated, hasCompletedOnboarding } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
+  const navigationState = useRootNavigationState();
 
   useEffect(() => {
     loadStoredAuth();
   }, []);
 
+  // Hide the Android system navigation bar for an immersive experience
   useEffect(() => {
-    if (isLoading) return;
+    if (Platform.OS === 'android') {
+      NavigationBar.setStyle('light');
+      NavigationBar.setHidden(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isLoading || !navigationState?.key) return;
 
     const inAuthGroup = segments[0] === '(auth)';
     const currentScreen = segments[1];
@@ -42,20 +55,14 @@ export default function RootLayout() {
         }
       }
     }
-  }, [isAuthenticated, isLoading, hasCompletedOnboarding, segments]);
-
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#0F3A20" />
-      </View>
-    );
-  }
+    
+    // Hide splash screen once we have determined where to route
+    SplashScreen.hideAsync();
+  }, [isAuthenticated, isLoading, hasCompletedOnboarding, segments, navigationState?.key]);
 
   return (
     <>
       <StatusBar style="light" />
-      <NavigationBar style="light" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />

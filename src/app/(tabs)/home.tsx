@@ -212,12 +212,93 @@ export default function HomeScreen() {
 
             {activeTab === 'remedies' && (
               <View style={styles.tabContent}>
+                {/* Treatment Plan Section */}
                 <Text style={styles.bodySectionTitle}>{t('home.treatmentPlan', 'Treatment Plan')}</Text>
                 <View style={styles.remedyCard}>
                   <Ionicons name="medical-outline" size={20} color="#2E7D32" style={{ marginRight: 12, marginTop: 2 }} />
                   <Text style={[styles.bodyText, { flex: 1, lineHeight: 22 }]}>
                     {result.remedy || t('home.noTreatment', 'No immediate chemical treatment required. Monitor local irrigation.')}
                   </Text>
+                </View>
+
+                {/* Recommended Medicines/Fungicides */}
+                <View style={{ marginTop: 18 }}>
+                  <View style={styles.remedySectionHeader}>
+                    <Ionicons name="flask-outline" size={16} color="#E65100" />
+                    <Text style={styles.remedySectionTitle}>
+                      {t('home.recommendedMedicines', 'Recommended Medicines')}
+                    </Text>
+                  </View>
+                  {(() => {
+                    const remedyText = result.remedy || '';
+                    const medicinePatterns = [
+                      'Captan', 'Mancozeb', 'Chlorothalonil', 'Myclobutanil', 'Metalaxyl',
+                      'Thiophanate-methyl', 'Copper', 'Neem oil', 'Sulfur', 'Oxytetracycline',
+                      'insecticidal soap', 'miticides', 'strobilurins', 'triazoles',
+                      'potassium bicarbonate', 'bactericides',
+                    ];
+                    const found = medicinePatterns.filter((m) =>
+                      remedyText.toLowerCase().includes(m.toLowerCase())
+                    );
+                    const medicines = found.length > 0
+                      ? found
+                      : ['Neem Oil (organic)', 'Copper-based Fungicide', 'Mancozeb (broad-spectrum)'];
+                    return medicines.map((med, i) => (
+                      <View key={i} style={styles.remedyPillRow}>
+                        <View style={styles.remedyPill}>
+                          <Ionicons name="checkmark-circle" size={14} color="#2E7D32" style={{ marginRight: 6 }} />
+                          <Text style={styles.remedyPillText}>{med}</Text>
+                        </View>
+                      </View>
+                    ));
+                  })()}
+                </View>
+
+                {/* Dosage & Application */}
+                <View style={{ marginTop: 18 }}>
+                  <View style={styles.remedySectionHeader}>
+                    <Ionicons name="beaker-outline" size={16} color="#0288D1" />
+                    <Text style={styles.remedySectionTitle}>
+                      {t('home.dosageGuidelines', 'Dosage & Application')}
+                    </Text>
+                  </View>
+                  <View style={styles.dosageCard}>
+                    {[
+                      t('home.dosage1', 'Apply recommended fungicide at first sign of disease'),
+                      t('home.dosage2', 'Follow product label instructions for exact dosage'),
+                      t('home.dosage3', 'Repeat application every 7–14 days as needed'),
+                      t('home.dosage4', 'Best applied early morning or late evening'),
+                    ].map((tip, i) => (
+                      <View key={i} style={styles.dosageItem}>
+                        <Text style={styles.dosageBullet}>{i + 1}.</Text>
+                        <Text style={[styles.bodyText, { flex: 1 }]}>{tip}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Best Farming Practices */}
+                <View style={{ marginTop: 18 }}>
+                  <View style={styles.remedySectionHeader}>
+                    <Ionicons name="leaf-outline" size={16} color="#2E7D32" />
+                    <Text style={styles.remedySectionTitle}>
+                      {t('home.bestPractices', 'Best Farming Practices')}
+                    </Text>
+                  </View>
+                  <View style={styles.practicesCard}>
+                    {[
+                      t('home.practice1', 'Rotate crops every season to break disease cycles'),
+                      t('home.practice2', 'Remove and destroy infected plant debris promptly'),
+                      t('home.practice3', 'Ensure proper spacing for adequate air circulation'),
+                      t('home.practice4', 'Use certified disease-free seeds and transplants'),
+                      t('home.practice5', 'Water at the base of plants; avoid wetting foliage'),
+                    ].map((practice, i) => (
+                      <View key={i} style={styles.symptomItem}>
+                        <Ionicons name="ellipse" size={6} color="#2E7D32" style={{ marginRight: 8, marginTop: 7 }} />
+                        <Text style={[styles.bodyText, { flex: 1 }]}>{practice}</Text>
+                      </View>
+                    ))}
+                  </View>
                 </View>
               </View>
             )}
@@ -230,6 +311,37 @@ export default function HomeScreen() {
                   <Text style={[styles.bodyText, { flex: 1, lineHeight: 22 }]}>
                     {result.prevention || t('home.defaultPrevention', 'Ensure clean crop environment and apply organic compost regular intervals.')}
                   </Text>
+                </View>
+
+                {/* Preventive Measures List */}
+                <View style={{ marginTop: 18 }}>
+                  <View style={styles.remedySectionHeader}>
+                    <Ionicons name="shield-outline" size={16} color="#0288D1" />
+                    <Text style={styles.remedySectionTitle}>
+                      {t('home.preventiveMeasures', 'Preventive Measures')}
+                    </Text>
+                  </View>
+                  {(() => {
+                    const prevText = result.prevention || '';
+                    const sentences = prevText
+                      .split(/\.\s+/)
+                      .map((s: string) => s.trim().replace(/\.$/, ''))
+                      .filter((s: string) => s.length > 5);
+                    const items = sentences.length > 0
+                      ? sentences
+                      : [
+                          'Apply preventive fungicide sprays before bloom season',
+                          'Monitor fields regularly for early signs of infection',
+                          'Maintain proper soil drainage and plant hygiene',
+                          'Use resistant crop varieties when available',
+                        ];
+                    return items.map((item: string, i: number) => (
+                      <View key={i} style={styles.symptomItem}>
+                        <Ionicons name="checkmark-circle-outline" size={16} color="#0288D1" style={{ marginRight: 8, marginTop: 2 }} />
+                        <Text style={[styles.bodyText, { flex: 1 }]}>{item}</Text>
+                      </View>
+                    ));
+                  })()}
                 </View>
               </View>
             )}
@@ -507,4 +619,57 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   newScanBtnText: { fontSize: 13.5, fontWeight: '800', color: '#0F3A20' },
+
+  // Enhanced Remedies Styles
+  remedySectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  remedySectionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1C2D24',
+    letterSpacing: 0.3,
+  },
+  remedyPillRow: {
+    marginBottom: 8,
+  },
+  remedyPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  remedyPillText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#2E7D32',
+  },
+  dosageCard: {
+    backgroundColor: '#E1F5FE',
+    borderRadius: 16,
+    padding: 14,
+  },
+  dosageItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+    gap: 8,
+  },
+  dosageBullet: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0288D1',
+    width: 18,
+  },
+  practicesCard: {
+    backgroundColor: '#F1F8E9',
+    borderRadius: 16,
+    padding: 14,
+  },
 });

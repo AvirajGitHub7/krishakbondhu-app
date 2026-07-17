@@ -108,14 +108,55 @@ export default function CommunityScreen() {
   };
 
   const handleLike = async (postId: string) => {
+    const userId = user?.id;
+    if (!userId) return;
+
+    // Optimistic update
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id !== postId) return p;
+        const alreadyLiked = p.likes.includes(userId);
+        return {
+          ...p,
+          likes: alreadyLiked
+            ? p.likes.filter((id) => id !== userId)
+            : [...p.likes, userId],
+          like_count: alreadyLiked ? Math.max(0, p.like_count - 1) : p.like_count + 1,
+        };
+      })
+    );
+
     try {
       const updated = await postService.toggleLike(postId);
+      // Reconcile with server state
       setPosts((prev) =>
         prev.map((p) =>
-          p.id === postId ? { ...p, like_count: updated.like_count } : p
+          p.id === postId
+            ? {
+                ...p,
+                like_count: updated.like_count,
+                likes: updated.liked
+                  ? (p.likes.includes(userId) ? p.likes : [...p.likes, userId])
+                  : p.likes.filter((id) => id !== userId),
+              }
+            : p
         )
       );
     } catch (error: any) {
+      // Revert optimistic update on failure
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p.id !== postId) return p;
+          const wasLiked = p.likes.includes(userId);
+          return {
+            ...p,
+            likes: wasLiked
+              ? p.likes.filter((id) => id !== userId)
+              : [...p.likes, userId],
+            like_count: wasLiked ? Math.max(0, p.like_count - 1) : p.like_count + 1,
+          };
+        })
+      );
       Alert.alert('Like Error', error.response?.data?.detail || error.message || 'Failed to like post.');
     }
   };
@@ -201,13 +242,15 @@ export default function CommunityScreen() {
           <TouchableOpacity
             style={styles.actionButton}
             onPress={(e) => {
-              // React Native does not natively have e.stopPropagation for TouchableOpacity that works flawlessly
-              // but we will do our best or users can just like from the details view if it bubbles.
               handleLike(item.id);
             }}
           >
-            <Ionicons name="heart-outline" size={20} color="#E65100" />
-            <Text style={styles.actionButtonText}>
+            <Ionicons
+              name={item.likes.includes(user?.id || '') ? 'heart' : 'heart-outline'}
+              size={20}
+              color={item.likes.includes(user?.id || '') ? '#D32F2F' : '#E65100'}
+            />
+            <Text style={[styles.actionButtonText, item.likes.includes(user?.id || '') && { color: '#D32F2F' }]}>
               {item.like_count || 0} {t('community.likes', 'Likes')}
             </Text>
           </TouchableOpacity>
