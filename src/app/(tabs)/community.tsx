@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/store/authStore';
 import { useFocusEffect, Link, useRouter } from 'expo-router';
+import { useAudioRecorder, useAudioRecorderState, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
 
 const { height } = Dimensions.get('window');
 
@@ -45,6 +46,14 @@ export default function CommunityScreen() {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
+  // Search States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const audioState = useAudioRecorderState(audioRecorder);
+  const [searching, setSearching] = useState(false);
+
   const fetchPosts = useCallback(async () => {
     try {
       const data = await postService.getPosts();
@@ -62,6 +71,62 @@ export default function CommunityScreen() {
       fetchPosts();
     }, [fetchPosts])
   );
+
+  const handleSearch = async (text: string = searchQuery, audioUri?: string) => {
+    if (!text && !audioUri) return;
+    setSearching(true);
+    try {
+      const results = await postService.searchPosts(text, audioUri);
+      setPosts(results.posts);
+      if (audioUri && results.query) {
+        setSearchQuery(results.query);
+      }
+    } catch (e: any) {
+      console.error('Search failed:', e?.response?.status, e?.response?.data || e?.message);
+      Alert.alert(t('error'), t('searchFailed', 'Failed to perform search.'));
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleVoiceSearch = async (uri: string) => {
+    handleSearch('', uri);
+  };
+
+  const handleTextSearch = async () => {
+    handleSearch(searchQuery);
+  };
+
+  const startRecording = async () => {
+    try {
+      const permission = await requestRecordingPermissionsAsync();
+      if (permission.granted) {
+        await setAudioModeAsync({
+          allowsRecording: true,
+          playsInSilentMode: true,
+        });
+        await audioRecorder.prepareToRecordAsync();
+        audioRecorder.record();
+      } else {
+        Alert.alert(t('permissionRequired', 'Microphone permission is required for voice input.'));
+      }
+    } catch (err) {
+      console.error('Failed to start recording', err);
+    }
+  };
+
+  const stopRecording = async () => {
+    if (!audioState.isRecording) return;
+    try {
+      await audioRecorder.stop();
+      const uri = audioRecorder.uri;
+      if (uri) {
+        handleVoiceSearch(uri);
+      }
+    } catch (err) {
+      console.error('Failed to stop recording', err);
+    }
+  };
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -268,6 +333,44 @@ export default function CommunityScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Search Bar with Voice */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBar}>
+          <TouchableOpacity onPress={() => searchQuery.trim() && handleSearch()}>
+            <Ionicons name="search" size={20} color={searchQuery.trim() ? '#0F3A20' : '#8E9F94'} />
+          </TouchableOpacity>
+          <TextInput
+            style={styles.searchInput}
+            placeholder={t('community.searchPlaceholder', 'Search for crop diseases, tips...')}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={() => handleSearch()}
+            returnKeyType="search"
+          />
+          {searchQuery.trim().length > 0 ? (
+            <TouchableOpacity onPress={() => { setSearchQuery(''); fetchPosts(); }} style={{ marginRight: 4 }}>
+              <Ionicons name="close-circle" size={20} color="#8E9F94" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+        <TouchableOpacity 
+          style={[styles.voiceButton, audioState.isRecording && styles.voiceButtonRecording]} 
+          onPress={audioState.isRecording ? stopRecording : startRecording}
+        >
+          <Ionicons name={audioState.isRecording ? "stop" : "mic"} size={22} color="white" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Searching Indicator */}
+      {searching && (
+        <View style={styles.searchingBanner}>
+          <ActivityIndicator size="small" color="#0F3A20" />
+          <Text style={styles.searchingText}>
+            {t('community.searching', 'Searching with AI...')}
+          </Text>
+        </View>
+      )}
+
       {/* Horizontal Tag Filters */}
       <View style={styles.filterSection}>
         <ScrollView
@@ -304,7 +407,7 @@ export default function CommunityScreen() {
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={refreshing || searching}
             onRefresh={onRefresh}
             tintColor="#0F3A20"
           />
@@ -422,6 +525,58 @@ export default function CommunityScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAF8F5' },
+  searchContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingTop: 15,
+    paddingBottom: 10,
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFFFFF',
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F5F4',
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 15,
+    fontFamily: 'Inter-Medium',
+    color: '#1C2D24',
+  },
+  voiceButton: {
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  voiceButtonRecording: {
+    backgroundColor: '#E53935',
+  },
+  searchingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#E8F5E9',
+    gap: 8,
+  },
+  searchingText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0F3A20',
+  },
   filterSection: {
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,

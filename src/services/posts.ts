@@ -64,4 +64,24 @@ export const postService = {
     const response = await api.post(`/posts/${postId}/comments`, { content });
     return response.data;
   },
+
+  searchPosts: async (text?: string, audioUri?: string): Promise<{ query: string; posts: Post[] }> => {
+    const formData = new FormData();
+    if (text) {
+      formData.append('text', text);
+    }
+    if (audioUri) {
+      const filename = audioUri.split('/').pop() || 'voice.m4a';
+      formData.append('audio', {
+        uri: audioUri,
+        name: filename,
+        type: 'audio/m4a',
+      } as any);
+    }
+    const response = await api.post('/posts/search', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 30000,
+    });
+    return response.data;
+  },
 };

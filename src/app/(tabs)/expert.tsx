@@ -14,6 +14,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Image } from 'expo-image';
+import { useAudioRecorder, useAudioRecorderState, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
 
 const STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
   pending: { color: '#F57F17', bg: '#FFF8E1', label: 'Pending' },
@@ -32,8 +33,17 @@ export default function ExpertScreen() {
   const [desc, setDesc] = useState('');
   const [creating, setCreating] = useState(false);
   const [selectedReq, setSelectedReq] = useState<ExpertRequest | null>(null);
-  const [activeSegment, setActiveSegment] = useState<'active' | 'closed'>('active');
+  const [activeSegment, setActiveSegment] = useState<'active' | 'closed' | 'ai'>('active');
   const [imageUri, setImageUri] = useState<string | null>(null);
+
+  // AI Expert States
+  const [aiMessages, setAiMessages] = useState<{ query: string; response: string }[]>([]);
+  const [aiQuery, setAiQuery] = useState('');
+  
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const audioState = useAudioRecorderState(audioRecorder);
+
+  const [aiLoading, setAiLoading] = useState(false);
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -78,6 +88,62 @@ export default function ExpertScreen() {
       Alert.alert(t('expert.error', 'Error'), e.response?.data?.detail || 'Failed');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleAIAsk = async (text: string = aiQuery, audioUri?: string) => {
+    if (!text && !audioUri) return;
+    setAiLoading(true);
+    setAiQuery(''); // Clear input eagerly
+    
+    // Optimistic UI update for text and voice queries
+    const displayQuery = text || t('expert.voiceRecording', 'Voice message...');
+    setAiMessages(prev => [...prev, { query: displayQuery, response: '...' }]);
+
+    try {
+      const result = await expertService.askAIExpert(text, audioUri);
+      setAiMessages(prev => {
+        const newMsgs = [...prev];
+        newMsgs[newMsgs.length - 1] = result;
+        return newMsgs;
+      });
+    } catch (e: any) {
+      console.error('AI Expert failed:', e?.response?.status, e?.response?.data || e?.message);
+      Alert.alert(t('error'), e?.response?.data?.detail || t('expert.aiFailed', 'AI Expert failed to respond.'));
+      setAiMessages(prev => prev.slice(0, -1)); // Remove optimistic message on error
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const startAIRecording = async () => {
+    try {
+      const permission = await requestRecordingPermissionsAsync();
+      if (permission.granted) {
+        await setAudioModeAsync({
+          allowsRecording: true,
+          playsInSilentMode: true,
+        });
+        await audioRecorder.prepareToRecordAsync();
+        audioRecorder.record();
+      } else {
+        Alert.alert(t('permissionRequired', 'Microphone permission is required for voice input.'));
+      }
+    } catch (err) {
+      console.error('Failed to start recording', err);
+    }
+  };
+
+  const stopAIRecording = async () => {
+    if (!audioState.isRecording) return;
+    try {
+      await audioRecorder.stop();
+      const uri = audioRecorder.uri;
+      if (uri) {
+        handleAIAsk('', uri);
+      }
+    } catch (err) {
+      console.error('Failed to stop recording', err);
     }
   };
 
@@ -168,17 +234,31 @@ export default function ExpertScreen() {
               {t('expert.resolvedHistory', 'Resolved History')}
             </Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.segmentBtn, activeSegment === 'ai' && styles.segmentBtnActive]}
+            onPress={() => setActiveSegment('ai')}
+          >
+            <Text
+              style={[
+                styles.segmentBtnText,
+                activeSegment === 'ai' && styles.segmentBtnTextActive,
+              ]}
+            >
+              {t('expert.aiExpert', 'AI Expert')}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
 
-      <FlatList
-        data={filteredRequests}
-        keyExtractor={(item) => item.id}
-        renderItem={renderRequest}
-        contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0F3A20" />
-        }
+      {activeSegment !== 'ai' && (
+        <FlatList
+          data={filteredRequests}
+          keyExtractor={(item) => item.id}
+          renderItem={renderRequest}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0F3A20" />
+          }
         ListEmptyComponent={
           <View style={styles.empty}>
             {loading ? (
@@ -201,14 +281,89 @@ export default function ExpertScreen() {
           </View>
         }
       />
+      )}
 
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setShowCreate(true)}
-        activeOpacity={0.85}
-      >
-        <Ionicons name="add" size={26} color="#FFFFFF" />
-      </TouchableOpacity>
+      {activeSegment === 'ai' && (
+        <KeyboardAvoidingView 
+          style={styles.aiContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        >
+          <FlatList
+            style={{ flex: 1 }}
+            data={aiMessages}
+            keyExtractor={(_, idx) => idx.toString()}
+            contentContainerStyle={styles.aiList}
+            renderItem={({ item }) => (
+              <View style={styles.aiMessageWrapper}>
+                <View style={styles.aiUserBubble}>
+                  <Text style={styles.aiUserText}>{item.query}</Text>
+                </View>
+                <View style={styles.aiBotBubble}>
+                  {item.response === '...' ? (
+                    <ActivityIndicator size="small" color="#2E7D32" />
+                  ) : (
+                    <Text style={styles.aiBotText}>{item.response}</Text>
+                  )}
+                </View>
+              </View>
+            )}
+            ListHeaderComponent={
+              aiMessages.length > 0 ? (
+                <View style={styles.aiDisclaimerBanner}>
+                  <Ionicons name="information-circle-outline" size={16} color="#F57F17" />
+                  <Text style={styles.aiDisclaimerText}>
+                    {t('expert.aiDisclaimer', 'This is an AI-generated response. For complex cases, please consult a human expert.')}
+                  </Text>
+                </View>
+              ) : null
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Ionicons name="chatbubbles-outline" size={48} color="#C4D4CC" />
+                <Text style={styles.emptyText}>
+                  {t('expert.aiEmpty', 'Ask KrishakBondhu AI for instant agricultural advice.')}
+                </Text>
+                <Text style={styles.aiDisclaimerSmall}>
+                  {t('expert.aiDisclaimer', 'This is an AI-generated response. For complex cases, please consult a human expert.')}
+                </Text>
+              </View>
+            }
+          />
+          <View style={styles.aiInputWrapper}>
+            <TextInput
+              style={styles.aiInput}
+              placeholder={t('expert.aiPlaceholder', 'Type or speak your question...')}
+              value={aiQuery}
+              onChangeText={setAiQuery}
+              onSubmitEditing={() => handleAIAsk()}
+              placeholderTextColor="#8E9F94"
+            />
+            {aiQuery.trim().length > 0 ? (
+              <TouchableOpacity style={styles.aiSendBtn} onPress={() => handleAIAsk()}>
+                <Ionicons name="send" size={20} color="white" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                style={[styles.aiVoiceBtn, audioState.isRecording && styles.aiVoiceBtnActive]} 
+                onPress={audioState.isRecording ? stopAIRecording : startAIRecording}
+              >
+                <Ionicons name={audioState.isRecording ? "stop" : "mic"} size={20} color="white" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      )}
+
+      {activeSegment !== 'ai' && (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => setShowCreate(true)}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="add" size={26} color="#FFFFFF" />
+        </TouchableOpacity>
+      )}
 
       {/* Create Modal */}
       <Modal visible={showCreate} animationType="slide" transparent>
@@ -371,6 +526,120 @@ export default function ExpertScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAF8F5' },
+  aiContainer: {
+    flex: 1,
+    backgroundColor: '#FAF8F5',
+    marginBottom: Platform.OS === 'ios' ? 88 : 68,
+  },
+  aiList: {
+    padding: 16,
+    paddingBottom: 24,
+  },
+  aiMessageWrapper: {
+    marginBottom: 16,
+  },
+  aiUserBubble: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#0F3A20',
+    padding: 12,
+    borderRadius: 16,
+    borderBottomRightRadius: 4,
+    maxWidth: '80%',
+    marginBottom: 8,
+  },
+  aiUserText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+  },
+  aiBotBubble: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    borderRadius: 16,
+    borderBottomLeftRadius: 4,
+    maxWidth: '90%',
+    borderWidth: 1,
+    borderColor: '#ECEFF1',
+  },
+  aiBotText: {
+    color: '#1C2D24',
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  aiInputWrapper: {
+    flexDirection: 'row',
+    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#ECEFF1',
+    alignItems: 'center',
+    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+  },
+  aiInput: {
+    flex: 1,
+    backgroundColor: '#F3F5F4',
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 15,
+    marginRight: 10,
+  },
+  aiSendBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#2E7D32',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  aiVoiceBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#0F3A20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  aiVoiceBtnActive: {
+    backgroundColor: '#D32F2F',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+  },
+  emptyText: {
+    marginTop: 16,
+    color: '#8E9F94',
+    fontSize: 15,
+    textAlign: 'center',
+  },
+  aiDisclaimerBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8E1',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    marginBottom: 16,
+    gap: 8,
+  },
+  aiDisclaimerText: {
+    flex: 1,
+    fontSize: 11,
+    color: '#F57F17',
+    fontWeight: '600',
+    lineHeight: 16,
+  },
+  aiDisclaimerSmall: {
+    marginTop: 12,
+    fontSize: 11,
+    color: '#B0BEC5',
+    textAlign: 'center',
+    lineHeight: 16,
+    paddingHorizontal: 20,
+  },
   segmentContainer: {
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,

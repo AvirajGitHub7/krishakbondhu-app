@@ -9,7 +9,7 @@ import { useAuthStore } from '@/store/authStore';
 
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 30000,
+  timeout: 60000,
 });
 
 // Request interceptor — attach JWT token and set Content-Type dynamically
