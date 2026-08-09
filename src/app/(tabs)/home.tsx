@@ -5,17 +5,23 @@
 import { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
-  ActivityIndicator, Alert, Dimensions,
+  ActivityIndicator, Alert, Dimensions, TextInput, LayoutAnimation, Platform, UIManager,
 } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors } from '@/constants/colors';
 import { diseaseService } from '@/services/disease';
-import { DiseaseResult } from '@/types';
+import { postService } from '@/services/posts';
+import { expertService } from '@/services/expert';
+import { DiseaseResult, Post } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const { width } = Dimensions.get('window');
 
@@ -25,6 +31,19 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DiseaseResult | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'remedies' | 'prevention'>('overview');
+  const [cropType, setCropType] = useState('');
+
+  // Farmer Insights & Expert Advice
+  const [farmerInsights, setFarmerInsights] = useState<Post[]>([]);
+  const [expertAdvice, setExpertAdvice] = useState<string | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [expertLoading, setExpertLoading] = useState(false);
+  const [expandedSection, setExpandedSection] = useState<'diagnosis' | 'insights' | 'expert'>('diagnosis');
+
+  const toggleSection = (section: 'diagnosis' | 'insights' | 'expert') => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedSection(prev => prev === section ? section : section);
+  };
 
   const pickImage = async (useCamera: boolean) => {
     const permissionResult = useCamera
@@ -49,10 +68,37 @@ export default function HomeScreen() {
   const analyzeImage = async () => {
     if (!imageUri) return;
     setLoading(true);
+    setFarmerInsights([]);
+    setExpertAdvice(null);
     try {
       const prediction = await diseaseService.predict(imageUri);
       setResult(prediction);
       setActiveTab('overview');
+      setExpandedSection('diagnosis');
+
+      // Build search query from disease name + crop type
+      const diseaseName = prediction.disease_name.replace(/_/g, ' ');
+      const searchQuery = cropType.trim()
+        ? `${diseaseName} ${cropType.trim()}`
+        : diseaseName;
+
+      // Fetch farmer insights (community posts)
+      setInsightsLoading(true);
+      postService.searchPosts(searchQuery)
+        .then(res => setFarmerInsights(res.posts.slice(0, 5)))
+        .catch(() => setFarmerInsights([]))
+        .finally(() => setInsightsLoading(false));
+
+      // Fetch expert advice (AI consult)
+      const expertPrompt = `I found ${diseaseName} on my ${cropType.trim() || 'crop'}. `
+        + (prediction.symptoms?.length ? `Symptoms: ${prediction.symptoms.join(', ')}. ` : '')
+        + `What should I do? Give practical treatment steps and prevention advice.`;
+      setExpertLoading(true);
+      expertService.askAIExpert(expertPrompt)
+        .then(res => setExpertAdvice(res.response))
+        .catch(() => setExpertAdvice('Unable to fetch expert advice at this time. Please try again later.'))
+        .finally(() => setExpertLoading(false));
+
     } catch (error: any) {
       const message = error.response?.data?.detail || t('home.analysisFailed', 'Analysis failed. Please try again.');
       Alert.alert(t('home.diagnosticFailure', 'Diagnostic Failure'), message);
@@ -64,6 +110,9 @@ export default function HomeScreen() {
   const resetState = () => {
     setImageUri(null);
     setResult(null);
+    setCropType('');
+    setFarmerInsights([]);
+    setExpertAdvice(null);
   };
 
   return (
@@ -88,12 +137,34 @@ export default function HomeScreen() {
       </View>
 
       {!imageUri && (
-        <View style={{ alignItems: 'center', marginTop: 10, marginBottom: 30 }}>
+        <View style={{ alignItems: 'center', marginTop: 10, marginBottom: 16 }}>
           <Image 
             source={require('../../../assets/images/home_illustration.svg')}
             style={{ width: '90%', height: 320 }} 
             contentFit="contain"
           />
+        </View>
+      )}
+
+      {/* Caution Card - Better Accuracy Tip */}
+      {!imageUri && (
+        <View style={styles.cautionCard}>
+          <LinearGradient
+            colors={['#FFF8E1', '#FFFDE7']}
+            style={styles.cautionGradient}
+          >
+            <View style={styles.cautionIconCircle}>
+              <Ionicons name="leaf" size={20} color="#E65100" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cautionTitle}>
+                {t('home.cautionTitle', 'Tip for Better Results')}
+              </Text>
+              <Text style={styles.cautionText}>
+                {t('home.cautionText', 'For better accuracy, upload a clear, well-lit image of the affected leaf against a plain background.')}
+              </Text>
+            </View>
+          </LinearGradient>
         </View>
       )}
 
@@ -115,31 +186,60 @@ export default function HomeScreen() {
           </View>
 
           {!result && (
-            <View style={styles.actionRow}>
-              <TouchableOpacity style={styles.iconBtn} onPress={resetState}>
-                <Ionicons name="camera-outline" size={24} color="#1C2D24" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.analyzeBtn, loading && styles.btnDisabled]}
-                onPress={analyzeImage}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <>
-                    <Ionicons name="analytics-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                    <Text style={styles.analyzeBtnText}>{t('home.runDiagnosis', 'Run Diagnosis')}</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
+            <>
+              {/* Crop Type Input */}
+              <View style={styles.cropTypeContainer}>
+                <View style={styles.cropTypeIconWrap}>
+                  <Ionicons name="nutrition-outline" size={18} color="#2E7D32" />
+                </View>
+                <TextInput
+                  style={styles.cropTypeInput}
+                  placeholder={t('home.cropTypePlaceholder', 'Enter crop type (e.g., Rice, Tomato, Wheat...)')}
+                  placeholderTextColor="#8E9F94"
+                  value={cropType}
+                  onChangeText={setCropType}
+                />
+              </View>
+
+              <View style={styles.actionRow}>
+                <TouchableOpacity style={styles.iconBtn} onPress={resetState}>
+                  <Ionicons name="camera-outline" size={24} color="#1C2D24" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.analyzeBtn, loading && styles.btnDisabled]}
+                  onPress={analyzeImage}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <>
+                      <Ionicons name="analytics-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                      <Text style={styles.analyzeBtnText}>{t('home.runDiagnosis', 'Run Diagnosis')}</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </>
           )}
         </View>
       )}
 
-      {/* Disease Result Dashboard */}
+      {/* === SECTION 1: AI Model Diagnosis === */}
       {result && (
+        <View style={{ marginHorizontal: 8, marginBottom: 0 }}>
+          <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('diagnosis')} activeOpacity={0.8}>
+            <LinearGradient colors={['#0F3A20', '#1B5E20']} style={styles.sectionHeaderGradient}>
+              <View style={styles.sectionHeaderIcon}>
+                <Ionicons name="flask-outline" size={18} color="#FFFFFF" />
+              </View>
+              <Text style={styles.sectionHeaderText}>{t('home.aiDiagnosis', 'AI Model Diagnosis')}</Text>
+              <Ionicons name={expandedSection === 'diagnosis' ? 'chevron-up' : 'chevron-down'} size={20} color="#FFFFFF" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      )}
+      {result && expandedSection === 'diagnosis' && (
         <View style={styles.resultCard}>
           <View style={styles.resultHeader}>
             <View style={{ flex: 1, paddingRight: 16 }}>
@@ -346,7 +446,126 @@ export default function HomeScreen() {
               </View>
             )}
           </View>
+        </View>
+      )}
 
+      {/* === SECTION 2: Farmer Insights === */}
+      {result && (
+        <View style={{ marginHorizontal: 8, marginBottom: 0 }}>
+          <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('insights')} activeOpacity={0.8}>
+            <LinearGradient colors={['#E65100', '#FF8F00']} style={styles.sectionHeaderGradient}>
+              <View style={styles.sectionHeaderIcon}>
+                <Ionicons name="people-outline" size={18} color="#FFFFFF" />
+              </View>
+              <Text style={styles.sectionHeaderText}>{t('home.farmerInsights', 'Farmer Insights')}</Text>
+              <Ionicons name={expandedSection === 'insights' ? 'chevron-up' : 'chevron-down'} size={20} color="#FFFFFF" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      )}
+      {result && expandedSection === 'insights' && (
+        <View style={[styles.resultCard, { borderTopLeftRadius: 0, borderTopRightRadius: 0 }]}>
+          <Text style={[styles.bodySectionTitle, { marginBottom: 4 }]}>
+            {t('home.communityExperiences', 'Relevant Community Experiences')}
+          </Text>
+          <Text style={[styles.bodyText, { marginBottom: 16 }]}>
+            {t('home.insightsDesc', 'Real experiences from fellow farmers facing similar issues.')}
+          </Text>
+
+          {insightsLoading ? (
+            <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+              <ActivityIndicator size="small" color="#E65100" />
+              <Text style={[styles.bodyText, { marginTop: 8 }]}>{t('home.fetchingInsights', 'Fetching farmer experiences...')}</Text>
+            </View>
+          ) : farmerInsights.length > 0 ? (
+            farmerInsights.map((post, i) => (
+              <View key={post.id || i} style={styles.insightCard}>
+                <View style={styles.insightHeader}>
+                  <View style={styles.insightAvatar}>
+                    <Text style={styles.insightAvatarText}>
+                      {post.author_name ? post.author_name.substring(0, 2).toUpperCase() : 'KB'}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.insightAuthor}>{post.author_name}</Text>
+                    <Text style={styles.insightDate}>
+                      {new Date(post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </Text>
+                  </View>
+                  <View style={styles.insightLikeBadge}>
+                    <Ionicons name="heart" size={12} color="#D32F2F" />
+                    <Text style={styles.insightLikeCount}>{post.like_count || 0}</Text>
+                  </View>
+                </View>
+                <Text style={styles.insightTitle}>{post.title}</Text>
+                <Text style={styles.insightBody} numberOfLines={3}>{post.description}</Text>
+              </View>
+            ))
+          ) : (
+            <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+              <Ionicons name="chatbubbles-outline" size={32} color="#8E9F94" />
+              <Text style={[styles.bodyText, { marginTop: 8, textAlign: 'center' }]}>
+                {t('home.noInsights', 'No matching farmer discussions found yet. Be the first to share your experience in the forum!')}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* === SECTION 3: Expert Advice === */}
+      {result && (
+        <View style={{ marginHorizontal: 8, marginBottom: 0 }}>
+          <TouchableOpacity style={styles.sectionHeader} onPress={() => toggleSection('expert')} activeOpacity={0.8}>
+            <LinearGradient colors={['#0277BD', '#0288D1']} style={styles.sectionHeaderGradient}>
+              <View style={styles.sectionHeaderIcon}>
+                <Ionicons name="school-outline" size={18} color="#FFFFFF" />
+              </View>
+              <Text style={styles.sectionHeaderText}>{t('home.expertAdvice', 'Expert Advice')}</Text>
+              <Ionicons name={expandedSection === 'expert' ? 'chevron-up' : 'chevron-down'} size={20} color="#FFFFFF" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      )}
+      {result && expandedSection === 'expert' && (
+        <View style={[styles.resultCard, { borderTopLeftRadius: 0, borderTopRightRadius: 0 }]}>
+          <Text style={[styles.bodySectionTitle, { marginBottom: 4 }]}>
+            {t('home.aiExpertRecommendation', 'AI Expert Recommendation')}
+          </Text>
+          <Text style={[styles.bodyText, { marginBottom: 16 }]}>
+            {t('home.expertDesc', 'Personalized advice based on your diagnosis and crop type.')}
+          </Text>
+
+          {expertLoading ? (
+            <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+              <ActivityIndicator size="small" color="#0288D1" />
+              <Text style={[styles.bodyText, { marginTop: 8 }]}>{t('home.fetchingExpert', 'Consulting AI expert...')}</Text>
+            </View>
+          ) : expertAdvice ? (
+            <View style={styles.expertAdviceCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                <View style={styles.expertBadge}>
+                  <Ionicons name="sparkles" size={14} color="#0277BD" />
+                </View>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#0277BD', letterSpacing: 0.5 }}>
+                  {t('home.aiGenerated', 'AI-GENERATED ADVICE')}
+                </Text>
+              </View>
+              <Text style={styles.expertAdviceText}>{expertAdvice}</Text>
+            </View>
+          ) : (
+            <View style={{ alignItems: 'center', paddingVertical: 20 }}>
+              <Ionicons name="medkit-outline" size={32} color="#8E9F94" />
+              <Text style={[styles.bodyText, { marginTop: 8, textAlign: 'center' }]}>
+                {t('home.noExpert', 'Expert advice could not be generated. Please try again.')}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* New Scan Button */}
+      {result && (
+        <View style={{ marginHorizontal: 8, marginBottom: 16 }}>
           <TouchableOpacity style={styles.newScanBtn} onPress={resetState}>
             <Ionicons name="scan-outline" size={16} color="#0F3A20" style={{ marginRight: 8 }} />
             <Text style={styles.newScanBtnText}>{t('home.newDiagnostic', 'New Diagnostics Run')}</Text>
@@ -671,5 +890,194 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F8E9',
     borderRadius: 16,
     padding: 14,
+  },
+
+  // Caution Card
+  cautionCard: {
+    marginHorizontal: 16,
+    marginBottom: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#FFE0B2',
+  },
+  cautionGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    gap: 14,
+  },
+  cautionIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFF3E0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFE0B2',
+  },
+  cautionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#E65100',
+    marginBottom: 3,
+    letterSpacing: 0.2,
+  },
+  cautionText: {
+    fontSize: 12.5,
+    color: '#5A4520',
+    lineHeight: 18,
+    fontWeight: '500',
+  },
+
+  // Crop Type Input
+  cropTypeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#ECEFF1',
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    marginTop: 14,
+    marginBottom: 2,
+  },
+  cropTypeIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#E8F5E9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  cropTypeInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1C2D24',
+    paddingVertical: 10,
+  },
+
+  // Collapsible Section Headers
+  sectionHeader: {
+    borderRadius: 18,
+    overflow: 'hidden',
+    marginTop: 8,
+  },
+  sectionHeaderGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+  },
+  sectionHeaderIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  sectionHeaderText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+
+  // Farmer Insight Cards
+  insightCard: {
+    backgroundColor: '#FAF8F5',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#ECEFF1',
+  },
+  insightHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 10,
+  },
+  insightAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFF3E0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  insightAvatarText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#E65100',
+  },
+  insightAuthor: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1C2D24',
+  },
+  insightDate: {
+    fontSize: 11,
+    color: '#8E9F94',
+    fontWeight: '500',
+  },
+  insightLikeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFEBEE',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  insightLikeCount: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#D32F2F',
+  },
+  insightTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1C2D24',
+    marginBottom: 4,
+  },
+  insightBody: {
+    fontSize: 12.5,
+    color: '#5A7265',
+    lineHeight: 18,
+  },
+
+  // Expert Advice Card
+  expertAdviceCard: {
+    backgroundColor: '#E1F5FE',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#B3E5FC',
+  },
+  expertBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    backgroundColor: '#E1F5FE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#B3E5FC',
+  },
+  expertAdviceText: {
+    fontSize: 13.5,
+    color: '#1C2D24',
+    lineHeight: 22,
+    fontWeight: '500',
   },
 });

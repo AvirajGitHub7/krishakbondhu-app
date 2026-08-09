@@ -342,6 +342,7 @@ export default function CommunityScreen() {
           <TextInput
             style={styles.searchInput}
             placeholder={t('community.searchPlaceholder', 'Search for crop diseases, tips...')}
+            placeholderTextColor="#1C2D24"
             value={searchQuery}
             onChangeText={setSearchQuery}
             onSubmitEditing={() => handleSearch()}
